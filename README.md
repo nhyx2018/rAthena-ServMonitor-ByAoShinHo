@@ -1,13 +1,13 @@
 ---
 
-# rAthena Server Monitor by AoShinHo
+# RO Serv Monitor
 
 ![Platform](https://img.shields.io/badge/platform-windows-blue)
 ![Framework](https://img.shields.io/badge/.NET-4.8.1-blue)
 ![WPF](https://img.shields.io/badge/UI-WPF-green)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AoShinRO/rAthena-ServMonitor-ByAoShinHo)
 
-A Windows desktop application built with **WPF (.NET Framework 4.8.1)** designed to monitor, manage, and interact with rAthena-based game server environments. It provides real-time process control, categorized log viewing, server statistics, and optional developer tools such as build automation and ROBrowser integration.
+A Windows desktop application built with **WPF (.NET Framework 4.8.1)** designed to monitor, manage, and interact with rAthena/Hercules-based game server environments. It provides real-time process control, categorized log viewing, server statistics, and optional developer tools such as build automation and ROBrowser integration.
 
 ---
 
