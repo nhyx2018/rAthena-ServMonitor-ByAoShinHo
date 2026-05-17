@@ -1,204 +1,101 @@
----
+# 🎛️ RO Serv Monitor
+> A high-performance, non-blocking process orchestrator and log virtualization platform engineered in C# (WPF) to monitor, build, and scale rAthena and Hercules private server infrastructures.
 
-# RO Serv Monitor
-
-![Platform](https://img.shields.io/badge/platform-windows-blue)
-![Framework](https://img.shields.io/badge/.NET-4.8.1-blue)
-![WPF](https://img.shields.io/badge/UI-WPF-green)
+![Platform](https://img.shields.io/badge/Platform-Windows_Desktop-blue?style=for-the-badge&logo=windows)
+![Framework](https://img.shields.io/badge/.NET_Framework-4.8.1-blue?style=for-the-badge&logo=dotnet)
+![UI Architecture](https://img.shields.io/badge/UI_Subsystem-WPF_//_Win32_Interop-green?style=for-the-badge)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AoShinRO/rAthena-ServMonitor-ByAoShinHo)
-<img width="1608" height="790" alt="image" src="https://github.com/user-attachments/assets/c2001d04-772f-4aa4-8495-2267424351f0" />
 
-A Windows desktop application built with **WPF (.NET Framework 4.8.1)** designed to monitor, manage, and interact with rAthena/Hercules-based game server environments. It provides real-time process control, categorized log viewing, server statistics, and optional developer tools such as build automation and ROBrowser integration.
+<img width="1608" height="790" alt="RO Serv Monitor Interface" src="https://github.com/user-attachments/assets/c2001d04-772f-4aa4-8495-2267424351f0" />
 
----
-
-## 📌 Table of Contents
-
-* [Overview](#overview)
-* [Key Features](#key-features)
-* [System Requirements](#system-requirements)
-* [Dependencies](#dependencies)
-* [Installation](#installation)
-* [Additional Features](#additional-features)
-* [Monitoring Tools](#monitoring-tools)
-* [Notes](#notes)
+**RO Serv Monitor** is a professional desktop management dashboard built specifically to abstract the complexities of running multi-tier MMORPG server architectures. By combining asynchronous Windows process piping with granular string streaming evaluation, the monitor offers centralized runtime controls, hot-swappable environment configurations, local node automation (ROBrowser compilation/serving), and automated cross-compiling diagnostics.
 
 ---
 
-## Overview
+## 🏗️ Technical Architecture & Internal Modules
 
-The **rAthena Server Monitor** offers a unified interface to control and observe four core server processes:
+To bypass standard WPF layout-coupling limitations and prevent UI thread starvation (freezing), the codebase is organized into a decoupled helper pipeline layer interacting with asynchronous UI update loops:
 
-* **Login Server**
-* **Char Server**
-* **Map Server**
-* **Web Server**
-- Optional:
-* **ROBrowser Server**
-* **wsProxy Server**
-  
-It captures and categorizes console output, provides automatic server detection, offers developer-oriented build features, and integrates optional server support through ROBrowser.
-
----
-
-## Key Features
-
-* Start and stop emulator processes directly from the UI
-* Real-time capture of stdout and stderr
-* Smart log categorization:
-
-  * Error, Warning, Debug, SQL, Status, Users
-* Player online counter
-* System tray background monitoring
-* Exportable error logs
-* Multi-emulator support with automatic detection:
-  * **rAthena**
-  * **brHades** (with C++20 support)
-  * **Hercules**
-* Fully asynchronous process and log handling—no UI freezing
-
----
-
-## System Requirements
-
-### Operating System
-
-* **Windows 7 / 8 / 10 / 11**
-  (WPF applications are Windows-only)
-
-### Required Framework
-
-* **.NET Framework 4.8.1**
-
----
-
-## Dependencies
-
-### 🔧 Build Tools (optional)
-
-You may use either:
-
-* **MSBuild** (default)
-* **CMake** with Unix Makefiles (optional)
-
-All of these **must be added to the Windows PATH**.
-
-### 🌐 For ROBrowser Integration
-
-Required only if using ROBrowser client features:
-
-* **Node.js** + **npm**
-* **wsproxy**
-
-All of these **must be added to the Windows PATH**.
-
----
-
-### 📚 Required .NET Libraries (Development Only)
-
-Included via .csproj:
-
-* System.Management
-* System.Windows.Forms
-* System.Drawing
-* PresentationFramework
-* Others required by WPF and console monitoring
-
----
-
-## Installation
-
-### 1. Build the Application
-
-* Open the solution in Visual Studio
-  **or**
-* Compile via MSBuild
-
-Available configurations:
-
-* **Debug**
-* **Release**
-
-Target framework:
 
 ```
-.NET Framework 4.8.1
+              ┌────────────────────────────────────────┐
+              │          WPF Window Subsystem          │
+              │   (MainWindow / OptionsWnd / Logs)     │
+              └───────────────────┬────────────────────┘
+                                  │ (Data Binding & Actions)
+                                  ▼
+┌───────────────────┬───────────────────┬───────────────────┐
+│                   │                   │                   │
+▼                   ▼                   ▼                   ▼
+
+[ IProcess ]        [ IText ]          [ ILogging ]       [ IAnimation ]
+──► Process IO      ──► ANSI Stripping  ──► Log Buffering  ──► Buttons Animation
+──► Parallel Kills  ──► Regex Parsing   ──► Tray Context   ──► Thickness
+
 ```
 
-### 2. Initial Setup
+### ⚙️ Under-The-Hood Implementations
 
-Configure the paths to the server executables:
-
-* `login-server.exe`
-* `char-server.exe`
-* `map-server.exe`
-* `web-server.exe`
-
-Paths are stored automatically once set.
+* **Asynchronous Process Interception:** Uses the Task-Based Asynchronous Pattern (`TAP`) combined with custom stream redirection to capture child process standard outputs (`stdout`/`stderr`) dynamically without dropping frames or blocking the core STA thread.
+* **Orphaned Subprocess Garbage Collection:** Features a defensive lifecycle routine (`KillOrphanProcesses`) executing via `Parallel.ForEach` over active process pools, enforcing atomic cleanup across rogue backend instances (`taskkill /F /T`) to prevent memory/port leaks.
+* **ANSI Stream Ingestion & Parsing:** Incorporates a fast compiled Regex pattern wrapper (`IText.RemoveAnsi`) running at the ingestion stage to wipe byte formatting escape sequences ($0x1B[...m$), making console feedback readable before passing it to the UI text buffers.
+* **Low-Overhead Log Virtualization:** Maps intercepted telemetry streams directly into memory models (`std::unordered_map` layout concepts modeled in C# dictionaries) to update diagnostic badge counts (`CounterError`, `CounterSql`) on the system tray context menus in real time.
 
 ---
 
-## Additional Features
+## 🛠️ Deep Dive Core Subsystems
 
-### 🔨 CMake Build Support
+### 1. Unified Management Profile Matrix
+The engine handles isolated configuration scopes for asymmetric backend binaries seamlessly through unified configurations:
+* **Core Emulators:** Direct runtime attachment to `login-server.exe`, `char-server.exe`, `map-server.exe`, and `web-server.exe`.
+* **Node Infrastructure Support:** Spawns and supervises localized instance sockets for `wsproxy` gateways and fully compiled `npm` web applications.
 
-* Alternative compilation path using CMake
-* Unix Makefiles generation
-* Automatic C++20 flag injection for **brHades**
-
-### 🌍 Multiple Emulator Detection
-
-Automatically identifies the emulator by scanning the solution file:
-
-* `rAthena.sln`
-* `brHades.sln`
-* `Hercules.sln`
-
-### 🌐 ROBrowser Features
-
-* Build via `npm run build -O -T` (optional `-H`)
-* Serve via:
-  * `npm run serve` (development)
-  * `npm run live` (production)
-* Configurable WebSocket proxy (default: **5999**)
-
-### 🔄 Pre-Renewal Build Mode
-
-* Automatically defines the **PRERE** compilation constant
-
-### 🛠 Developer Mode
-
-* Build emulators directly from the monitor
-* Supports both MSBuild and CMake
-* Real-time compilation output window
-
-### 🎨 UI Customization
-
-* Light/Dark Mode toggle (White Mode)
-* Customizable font family and size
-* "Skip Loading Messages" to improve client UI performance
+### 2. Multi-Target Compiler Automation
+Detects project configurations on initialization by scanning the workspace footprint (`rAthena.sln`, `brHades.sln`, `Hercules.sln`), automatically injecting preprocessor directives:
+* **Pre-Renewal Flags:** Injects the global `#define PRERE` constant dynamically through automated standard build calls (`MSBuild` / `CMake`).
 
 ---
 
-## Monitoring Tools
+## ⚙️ Configuration Macro Mapping (UI & Runtime)
 
-* Categorized real-time logs
-* Error, Warning, SQL and Status counters
-* Player online tracking
-* System tray integration showing:
-  * Server status
-  * Player count
-* Export logs with filters
-* Non-blocking asynchronous log pipeline
+The orchestration rules can be calibrated inside the `OptionsWnd` boundary layer:
 
----
-
-## Notes
-
-* This application is **Windows-only** due to reliance on WPF.
-* ROBrowser, build tools, and proxy components must be installed separately.
-* The monitor supports any fork of rAthena/brHades/Hercules as long as traditional executables are maintained.
-* Emulator detection is performed automatically based on `.sln` filenames.
+| Component Feature | Internal Execution Logic | UI Component Vector |
+| :--- | :--- | :--- |
+| **White Mode Toggle** | Switches system coloring dictionaries to low-contrast templates | `WhiteMode_Checked` |
+| **DevMode Automation** | Exposes auxiliary standard compilation windows for environment pipelines | `DevMode_Checked` |
+| **CMake Native Pipe** | Forces generation via Unix Makefiles instead of classic solution files | `CmakeMode_Checked` |
+| **Numeric Restrictions** | Rejects non-digit char arrays at input boundary for port binding loops | `WSproxy_PreviewTextInput` |
+| **Font Rendering Cache** | Ingests System Fonts (`Fonts.SystemFontFamilies`) on background thread loops | `FontSelector_Loaded` |
 
 ---
 
+## 🚀 Environment Requirements & Production Build
+
+### Minimum OS Compatibility
+* Windows 7 / 8 / 10 / 11 ($x86$/$x64$)
+
+### Target Environment Dependencies
+* **Development Target:** .NET Framework 4.8.1 (WPF Subsystem)
+* **Build Targets (Path Visible):** MSBuild Engine / CMake Compiler Core
+* **Web Serving (Optional Stack):** Node.js LTS Engine + Global npm packages
+
+## 💾 Download & Quick Start
+
+### 🚀 Pre-Compiled Release
+If you don't want to compile the source code manually, you can download the ready-to-use executable directly from the **[GitHub Releases](https://github.com/AoShinRO/ROServMonitor/releases)** section.
+
+### Local Compilation Steps
+1. Open the primary project file `AoShinhoServ_Monitor.sln` inside Visual Studio 2022.
+2. Alter the configuration profile target to **Release | AnyCPU** or **Release | x86**.
+3. Rebuild the solution. The pipeline generates an isolated deployment artifact under the target output root directory:
+
+```
+\bin\Release\AoShinhoServ_Monitor.exe
+```
+
+---
+
+## ⚠️ Research & Diagnostics Notice
+
+This software is an open-source automation tool provided to the server research community under the **Unlicense** terms. It is engineered strictly to handle system logs virtualization, build scripting execution, and server health tracking inside independent development environments. Always confirm that local executables adhere to secure connection privileges before binding to live server interfaces.
